@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外注編集者さんにも"神対応"したい！</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    overflow: hidden;
+  }
+
+  #deck {
+    position: relative;
+    width: 960px;
+    height: 540px;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    width: 960px;
+    height: 540px;
+    background: #FFF3EC;
+    border-radius: 12px;
+    overflow: hidden;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+  }
+  .slide.active { display: flex; }
+
+  /* ── ヘッダー共通 ── */
+  .slide-header {
+    display: flex;
+    align-items: center;
+    padding: 24px 56px 16px;
+    border-bottom: 2px solid rgba(255,107,43,0.12);
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .slide-header .bar {
+    width: 8px; height: 44px;
+    background: linear-gradient(180deg, #FF6B2B, #FF9A5C);
+    border-radius: 4px; flex-shrink: 0;
+  }
+  .slide-header h2 { font-size: 30px; color: #1A1A2E; font-weight: 800; }
+
+  /* ── ① タイトル ── */
+  .slide-title .hero {
+    background: linear-gradient(135deg, #FF6B2B 0%, #FF9A5C 60%, #FFB87A 100%);
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center;
+    padding: 52px 64px 44px;
+    position: relative; overflow: hidden;
+  }
+  .slide-title .hero::after {
+    content: '';
+    position: absolute; right: -60px; top: -60px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+  }
+  .slide-title .hero::before {
+    content: '';
+    position: absolute; right: 80px; bottom: -80px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+  }
+  .slide-title .tag {
+    font-size: 17px; color: rgba(255,255,255,0.9); font-weight: 500;
+    letter-spacing: 0.1em; margin-bottom: 14px;
+    background: rgba(255,255,255,0.2); padding: 4px 16px;
+    border-radius: 20px; display: inline-block;
+    position: relative; z-index: 1;
+  }
+  .slide-title h1 {
+    font-size: 50px; color: #fff; font-weight: 900; line-height: 1.3;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    position: relative; z-index: 1;
+  }
+  .slide-title .subtitle {
+    font-size: 23px; color: rgba(255,255,255,0.88); margin-top: 12px;
+    font-weight: 400; position: relative; z-index: 1;
+  }
+  .slide-title .footer {
+    height: 68px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 64px; background: #fff;
+  }
+  .slide-title .footer .name { color: #FF6B2B; font-weight: 700; font-size: 18px; }
+  .slide-title .footer .date { color: #aaa; font-size: 17px; }
+
+  /* ── コンテンツ body ── */
+  .slide-content .body {
+    flex: 1; display: flex; align-items: center;
+    padding: 18px 52px; gap: 32px;
+  }
+
+  /* ── ポイントリスト ── */
+  .points { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .point-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: #fff; border-radius: 12px; padding: 15px 20px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08);
+    border-left: 5px solid #FF6B2B;
+  }
+  .point-item .icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+  .point-item .text { font-size: 23px; color: #1A1A2E; font-weight: 600; line-height: 1.5; }
+  .point-item .sub  { font-size: 17px; color: #888; font-weight: 400; margin-top: 4px; }
+
+  .illust {
+    width: 170px; height: 170px;
+    background: linear-gradient(135deg, #FF6B2B, #FF9A5C);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 6px 24px rgba(255,107,43,0.35);
+  }
+
+  /* ── 参考文献スライド ── */
+  .ref-body {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    padding: 20px 64px;
+  }
+  .ref-card {
+    background: #fff; border-radius: 20px; padding: 36px 44px;
+    display: flex; align-items: center; gap: 44px;
+    box-shadow: 0 4px 24px rgba(255,107,43,0.12); width: 100%;
+    border-left: 8px solid #FF6B2B;
+  }
+  .ref-book {
+    width: 96px; height: 120px; flex-shrink: 0;
+    background: linear-gradient(160deg, #FF6B2B, #FF9A5C);
+    border-radius: 3px 10px 10px 3px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: -5px 5px 16px rgba(0,0,0,0.18); position: relative;
+  }
+  .ref-book::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 10px; background: rgba(0,0,0,0.18); border-radius: 3px 0 0 3px;
+  }
+  .ref-info { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .ref-label { font-size: 13px; font-weight: 700; color: #FF6B2B; letter-spacing: 0.12em; }
+  .ref-title-text { font-size: 30px; font-weight: 900; color: #1A1A2E; line-height: 1.4; }
+  .ref-desc { font-size: 17px; color: #888; line-height: 1.8; }
+
+  /* ── Qスライド（問いかけ型） ── */
+  .slide-question {
+    background: #1A1A2E;
+    align-items: center; justify-content: center;
+  }
+  .q-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; padding: 48px 64px; text-align: center;
+  }
+  .q-badge {
+    font-size: 14px; font-weight: 800; letter-spacing: 0.2em;
+    color: #FF6B2B; background: rgba(255,107,43,0.15);
+    padding: 6px 20px; border-radius: 20px;
+    border: 1px solid rgba(255,107,43,0.3);
+  }
+  .q-text {
+    font-size: 42px; font-weight: 900; color: #fff; line-height: 1.5;
+  }
+  .q-sub {
+    font-size: 20px; color: rgba(255,255,255,0.5); font-weight: 400; line-height: 1.6;
+  }
+
+  /* ── キーメッセージ ── */
+  .slide-key { background: #fff; align-items: center; justify-content: center; }
+  .key-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 18px; padding: 44px 64px; text-align: center; width: 100%;
+  }
+  .key-label { font-size: 17px; color: #FF6B2B; font-weight: 700; letter-spacing: 0.15em; }
+  .key-box {
+    border: 4px solid #FF6B2B; border-radius: 16px;
+    padding: 26px 52px; background: #FFF3EC; position: relative;
+  }
+  .key-box::before {
+    content: '"';
+    position: absolute; top: -22px; left: 22px;
+    font-size: 80px; color: #FF6B2B; line-height: 1;
+    font-family: Georgia, serif;
+  }
+  .key-text { font-size: 36px; color: #1A1A2E; font-weight: 900; line-height: 1.55; }
+  .key-sub  { font-size: 20px; color: #888; font-weight: 400; line-height: 1.7; }
+
+  /* ── オンボーディング定義 ── */
+  .def-body {
+    flex: 1; display: flex; align-items: center;
+    padding: 20px 52px; gap: 32px;
+  }
+  .def-points { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+  .def-item {
+    background: #fff; border-radius: 12px; padding: 16px 22px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.07);
+    border-left: 5px solid #FF9A5C;
+  }
+  .def-item .di-label {
+    font-size: 13px; font-weight: 700; color: #FF6B2B;
+    letter-spacing: 0.1em; margin-bottom: 6px;
+  }
+  .def-item .di-text { font-size: 22px; color: #1A1A2E; font-weight: 600; line-height: 1.55; }
+
+  /* ── ステップ ── */
+  .steps {
+    flex: 1; display: flex; align-items: center;
+    padding: 18px 44px; gap: 14px;
+  }
+  .step-card {
+    flex: 1; background: #fff; border-radius: 14px; padding: 18px 16px 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    box-shadow: 0 2px 12px rgba(255,107,43,0.08);
+    border-top: 5px solid #FF6B2B; text-align: center;
+  }
+  .step-card .step-num {
+    font-size: 13px; font-weight: 700; color: #FF6B2B; letter-spacing: 0.1em;
+    background: #FFF3EC; padding: 3px 12px; border-radius: 20px;
+  }
+  .step-card .step-icon { font-size: 34px; }
+  .step-card .step-title { font-size: 19px; font-weight: 800; color: #1A1A2E; line-height: 1.4; }
+  .step-card .step-body  { font-size: 16px; color: #666; font-weight: 400; line-height: 1.6; }
+  .step-arrow { font-size: 26px; color: #FFB87A; flex-shrink: 0; }
+
+  /* ── 褒めスライド ── */
+  .praise-body {
+    flex: 1; display: flex; align-items: center;
+    padding: 16px 48px; gap: 32px;
+  }
+  .praise-left { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .praise-label { font-size: 19px; font-weight: 700; color: #FF6B2B; margin-bottom: 2px; }
+  .praise-item {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: #fff; border-radius: 10px; padding: 12px 16px;
+    box-shadow: 0 2px 6px rgba(255,107,43,0.07);
+    font-size: 21px; color: #1A1A2E; font-weight: 500; line-height: 1.5;
+    border-left: 4px solid #FF9A5C;
+  }
+  .praise-right {
+    display: flex; flex-direction: column; gap: 10px;
+    width: 210px; flex-shrink: 0;
+  }
+  .formula-card {
+    background: linear-gradient(135deg, #FF6B2B, #FF9A5C);
+    border-radius: 12px; padding: 14px 18px;
+    text-align: center; color: #fff; font-weight: 700;
+  }
+  .formula-card .fc-label { font-size: 13px; opacity: 0.85; margin-bottom: 4px; }
+  .formula-card .fc-text  { font-size: 19px; font-weight: 800; }
+  .formula-plus { text-align: center; font-size: 24px; color: #FF6B2B; font-weight: 900; }
+
+  /* ── 月次フィードバック ── */
+  .monthly-body {
+    flex: 1; display: flex; align-items: stretch;
+    padding: 16px 52px 20px; gap: 28px;
+  }
+  .monthly-left {
+    flex: 1; display: flex; flex-direction: column;
+    gap: 12px; justify-content: center;
+  }
+  .monthly-left .ml-desc {
+    font-size: 22px; color: #1A1A2E; font-weight: 600; line-height: 1.6;
+    background: #fff; border-radius: 12px; padding: 14px 18px;
+    border-left: 5px solid #FF6B2B;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.07);
+  }
+  .monthly-example {
+    flex: 1; background: #fff; border-radius: 14px; padding: 18px 22px;
+    box-shadow: 0 2px 12px rgba(255,107,43,0.08);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .monthly-example .me-label {
+    font-size: 14px; font-weight: 700; color: #FF6B2B;
+    letter-spacing: 0.08em; border-bottom: 2px solid #FFE0CC; padding-bottom: 8px;
+  }
+  .monthly-example .me-text {
+    font-size: 17px; color: #444; font-weight: 400; line-height: 1.85;
+  }
+
+  /* ── まとめ ── */
+  .summary-body {
+    flex: 1; display: flex; align-items: center;
+    padding: 16px 48px; gap: 20px;
+  }
+  .summary-points { flex: 1; display: flex; flex-direction: column; gap: 13px; }
+  .summary-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #fff; border-radius: 12px; padding: 13px 18px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08);
+    border-left: 5px solid #FF6B2B;
+  }
+  .summary-item .si-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .summary-item .si-text { font-size: 21px; color: #1A1A2E; font-weight: 600; line-height: 1.5; }
+  .summary-cta {
+    background: linear-gradient(135deg, #FF6B2B, #FF9A5C);
+    border-radius: 14px; padding: 24px 22px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; width: 210px; flex-shrink: 0; text-align: center;
+    box-shadow: 0 4px 16px rgba(255,107,43,0.3);
+  }
+  .summary-cta .cta-icon { font-size: 40px; }
+  .summary-cta .cta-text { font-size: 19px; font-weight: 800; color: #fff; line-height: 1.5; }
+
+  /* ── ページ番号 ── */
+  .page-num {
+    position: absolute; bottom: 10px; right: 16px;
+    font-size: 13px; color: #ccc; z-index: 10; pointer-events: none;
+  }
+  .slide-question .page-num { color: rgba(255,255,255,0.25); }
+
+  /* ── ナビゲーション ── */
+  #nav {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(30,30,30,0.85); padding: 10px 22px;
+    border-radius: 32px; backdrop-filter: blur(8px);
+    z-index: 100; user-select: none;
+  }
+  #nav button {
+    background: none; border: none; color: #fff; font-size: 20px;
+    cursor: pointer; padding: 4px 10px; border-radius: 8px;
+    transition: background 0.15s; line-height: 1;
+  }
+  #nav button:hover { background: rgba(255,107,43,0.4); }
+  #nav button:disabled { color: #555; cursor: default; }
+  #nav button:disabled:hover { background: none; }
+  #counter { font-size: 14px; color: #aaa; min-width: 58px; text-align: center; font-family: monospace; }
+  #fullscreen-btn {
+    background: none; border: none; color: #aaa; font-size: 16px;
+    cursor: pointer; padding: 4px 8px; border-radius: 8px; line-height: 1;
+    transition: color 0.15s;
+  }
+  #fullscreen-btn:hover { color: #FF9A5C; }
+  #back-btn {
+    background: none; border: none; color: rgba(255,255,255,0.5); font-size: 13px;
+    cursor: pointer; padding: 4px 10px; border-radius: 8px; line-height: 1;
+    text-decoration: none; display: flex; align-items: center; gap: 4px;
+    transition: color 0.15s;
+  }
+  #back-btn:hover { color: #FF9A5C; }
+  .nav-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+  :fullscreen #nav { opacity: 0.3; transition: opacity 0.2s; }
+  :fullscreen #nav:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 1. タイトル -->
+  <div class="slide slide-title active">
+    <div class="hero">
+      <div class="tag">Knowledge Share</div>
+      <h1>外注編集者さんにも<br>"神対応"したい！</h1>
+      <div class="subtitle">オンボーディング導入のすすめ</div>
+    </div>
+    <div class="footer">
+      <span class="name">発表者名</span>
+      <span class="date">2026.03.25</span>
+    </div>
+    <span class="page-num">1 / 20</span>
+  </div>
+
+  <!-- 2. Q：現状の課題 -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">PROBLEM</div>
+      <div class="q-text">外注編集者さんが<br>なかなか定着しない…</div>
+      <div class="q-sub">最初の修正依頼でいなくなる・テスト期間〜数件でのご卒業が多い<br>採用してもまたすぐ採用…というループ</div>
+    </div>
+    <span class="page-num">2 / 20</span>
+  </div>
+
+  <!-- 3. A：どうしたら良いか考えた -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>どうしたら良いか考えた結果…</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">💡</span>
+          <div>
+            <div class="text">新入社員と同じ発想で「育てながら戦力化」する</div>
+            <div class="sub">即戦力を求めるのは当然。でも現状それが難しいなら、こちらが育てる</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🏗️</span>
+          <div>
+            <div class="text">定着しやすい環境をこちらが作る</div>
+            <div class="sub">待つのではなく、残ってもらえるように仕組みから変える</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+          <circle cx="30" cy="28" r="14" stroke="white" stroke-width="4"/>
+          <path d="M12 62 C12 46 48 46 48 62" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <circle cx="66" cy="28" r="14" stroke="white" stroke-width="4"/>
+          <path d="M48 62 C48 46 84 46 84 62" stroke="white" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <circle cx="48" cy="12" r="9" fill="rgba(255,255,255,0.3)" stroke="white" stroke-width="2"/>
+          <line x1="48" y1="7" x2="48" y2="17" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="43" y1="12" x2="53" y2="12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <span class="page-num">3 / 20</span>
+  </div>
+
+  <!-- 4. オンボーディングという考え方に行き着いた -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">そこで出会ったのが…</div>
+      <div class="key-box">
+        <div class="key-text">"オンボーディング"<br>という考え方</div>
+      </div>
+      <div class="key-sub">今日はこの勉強結果を共有します</div>
+    </div>
+    <span class="page-num">4 / 20</span>
+  </div>
+
+  <!-- 5. 参考文献 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>参考文献</h2>
+    </div>
+    <div class="ref-body">
+      <div class="ref-card">
+        <div class="ref-book">
+          <svg width="48" height="56" viewBox="0 0 48 56" fill="none" style="position:relative;z-index:1;">
+            <rect x="8" y="4" width="32" height="48" rx="3" stroke="rgba(255,255,255,0.9)" stroke-width="3"/>
+            <line x1="14" y1="16" x2="34" y2="16" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="14" y1="24" x2="34" y2="24" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="14" y1="32" x2="26" y2="32" stroke="rgba(255,255,255,0.9)" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="ref-info">
+          <div class="ref-label">参考にした本</div>
+          <div class="ref-title-text">オンボーディングの教科書</div>
+          <div class="ref-desc">新人・中途・外注問わず「入ってすぐ活躍できる状態」を<br>組織側がどう作るかを体系的にまとめた一冊</div>
+        </div>
+      </div>
+    </div>
+    <span class="page-num">5 / 20</span>
+  </div>
+
+  <!-- 6. Q：オンボーディングって何？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">そもそも<br>"オンボーディング"って何？</div>
+      <div class="q-sub">よく聞く言葉だけど、具体的にどういう意味？</div>
+    </div>
+    <span class="page-num">6 / 20</span>
+  </div>
+
+  <!-- 5. A：オンボーディングとは（定義） -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>オンボーディングとは？</h2>
+    </div>
+    <div class="def-body">
+      <div class="def-points">
+        <div class="def-item">
+          <div class="di-label">WHAT</div>
+          <div class="di-text">新しく入った人が仕事や組織にスムーズになじめるよう<br>にする、一連の受け入れ・立ち上がり支援のこと</div>
+        </div>
+        <div class="def-item">
+          <div class="di-label">NOT</div>
+          <div class="di-text">ただの「初日説明」ではなく、早く安心して成果を出せる<br>状態になるまでの流れ全体を指す</div>
+        </div>
+        <div class="def-item">
+          <div class="di-label">GOAL</div>
+          <div class="di-text">新しく入った人を放置せず、早く安心して活躍できるようにする仕組み</div>
+        </div>
+      </div>
+      <div class="illust">
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+          <circle cx="48" cy="48" r="30" stroke="white" stroke-width="4"/>
+          <line x1="48" y1="18" x2="48" y2="78" stroke="white" stroke-width="2" stroke-dasharray="4 3"/>
+          <line x1="18" y1="48" x2="78" y2="48" stroke="white" stroke-width="2" stroke-dasharray="4 3"/>
+          <circle cx="48" cy="48" r="6" fill="white"/>
+          <polygon points="48,22 52,34 48,30 44,34" fill="white"/>
+        </svg>
+      </div>
+    </div>
+    <span class="page-num">7 / 20</span>
+  </div>
+
+  <!-- 6. 超シンプルに言うと（キーメッセージ） -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">超シンプルに言うと</div>
+      <div class="key-box">
+        <div class="key-text">採用した人を<br>"入れただけ"で終わらせず<br>"戦力化するまで支えること"</div>
+      </div>
+    </div>
+    <span class="page-num">8 / 20</span>
+  </div>
+
+  <!-- 8. テスト期間だけでも -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">この発表のゴール</div>
+      <div class="key-box">
+        <div class="key-text">テスト期間だけでも<br>この考え方を<br>取り入れてみる</div>
+      </div>
+      <div class="key-sub">まず小さく始める。それだけで定着率は変わる。</div>
+    </div>
+    <span class="page-num">9 / 20</span>
+  </div>
+
+  <!-- 9. Q：テスト期間、何が問題？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">PROBLEM</div>
+      <div class="q-text">今のテスト期間、<br>いきなり本番すぎない？</div>
+      <div class="q-sub">公開プレッシャーがある動画・重めの素材・修正も多い<br>編集者さん側も、編集Dの添削負担も大きい状態</div>
+    </div>
+    <span class="page-num">10 / 20</span>
+  </div>
+
+  <!-- 9. STEP 1 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>STEP 1 ― テスト1本目（公開済み素材）</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">📦</span>
+          <div>
+            <div class="text">公開済み・短尺の動画を素材に使う</div>
+            <div class="sub">公開プレッシャーがなく、正解がある状態で依頼できる</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🙆</span>
+          <div>
+            <div class="text">修正が多くなってもOK前提で依頼する</div>
+            <div class="sub">編集者さんにも「最初は修正多めです」と事前に伝えておく</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🔎</span>
+          <div>
+            <div class="text">見るポイントをマニュアル項目だけに絞って添削</div>
+            <div class="sub">完璧に直すのではなく、まず基準を知ってもらうことが目的</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+          <rect x="22" y="12" width="52" height="68" rx="6" stroke="white" stroke-width="4"/>
+          <rect x="36" y="6" width="24" height="14" rx="4" fill="#FF6B2B" stroke="white" stroke-width="3"/>
+          <line x1="34" y1="40" x2="62" y2="40" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <line x1="34" y1="53" x2="62" y2="53" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <line x1="34" y1="66" x2="50" y2="66" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="64" cy="68" r="12" fill="rgba(255,255,255,0.25)" stroke="white" stroke-width="3"/>
+          <path d="M59 68 L63 72 L70 64" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <span class="page-num">11 / 20</span>
+  </div>
+
+  <!-- 10. STEP 2 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>STEP 2 ― テスト2稿目</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">✅</span>
+          <div>
+            <div class="text">前回の修正が直っているか確認する</div>
+            <div class="sub">同じ指摘が繰り返されていないか、改善を見る</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">➕</span>
+          <div>
+            <div class="text">新しいポイントの添削を追加する</div>
+            <div class="sub">1本目で見なかった項目を少しずつ足していく</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">📈</span>
+          <div>
+            <div class="text">少しずつ基準を上げていく</div>
+            <div class="sub">一気に全部求めず、段階的に水準を引き上げるのがポイント</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+          <path d="M48 20 C30 20 16 34 16 52" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <path d="M48 76 C66 76 80 62 80 44" stroke="white" stroke-width="5" stroke-linecap="round"/>
+          <polygon points="48,12 38,24 58,24" fill="white"/>
+          <polygon points="48,84 58,72 38,72" fill="white"/>
+          <circle cx="48" cy="48" r="8" fill="rgba(255,255,255,0.3)" stroke="white" stroke-width="3"/>
+          <line x1="48" y1="43" x2="48" y2="53" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="43" y1="48" x2="53" y2="48" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <span class="page-num">12 / 20</span>
+  </div>
+
+  <!-- 11. STEP 3 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>STEP 3 ― 公開予定1本目へ</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">🚀</span>
+          <div>
+            <div class="text">今まで通りの依頼フローへ移行する</div>
+            <div class="sub">ここからは通常の編集者さんとして動いてもらう</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🏆</span>
+          <div>
+            <div class="text">段階を踏んできた分、戦力として動ける状態に</div>
+            <div class="sub">いきなり本番よりも離脱リスクが大きく下がる</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🔁</span>
+          <div>
+            <div class="text">テスト期間〜数本だけでもこの流れを作るだけでOK</div>
+            <div class="sub">完璧に整備しなくても、意識するだけで変わる</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">
+        <svg width="96" height="96" viewBox="0 0 96 96" fill="none">
+          <circle cx="48" cy="48" r="34" stroke="white" stroke-width="3" stroke-dasharray="none" opacity="0.4"/>
+          <circle cx="48" cy="48" r="22" stroke="white" stroke-width="3" opacity="0.7"/>
+          <circle cx="48" cy="48" r="10" fill="white"/>
+          <line x1="72" y1="24" x2="52" y2="44" stroke="white" stroke-width="4" stroke-linecap="round"/>
+          <polygon points="76,18 64,22 70,28" fill="white"/>
+        </svg>
+      </div>
+    </div>
+    <span class="page-num">13 / 20</span>
+  </div>
+
+  <!-- 9. Q：最初から厳しくしていい？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">最初から高いレベルを<br>求めていい？</div>
+      <div class="q-sub">「でもテストなんだから厳しくチェックしないと意味ないのでは？」</div>
+    </div>
+    <span class="page-num">14 / 20</span>
+  </div>
+
+  <!-- 10. A：育成コスト前提 -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">大事な考え方</div>
+      <div class="key-box">
+        <div class="key-text">最初から満点を求めると<br>離脱しやすい</div>
+      </div>
+      <div class="key-sub">最初は<strong style="color:#FF6B2B">育成コストをかける前提</strong>で見た方が<br>結果的に長く残ってくれる</div>
+    </div>
+    <span class="page-num">15 / 20</span>
+  </div>
+
+  <!-- 11. Q：修正依頼、このままでいい？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">PROBLEM</div>
+      <div class="q-text">修正依頼、<br>"ダメ出しだけ"になってない？</div>
+      <div class="q-sub">修正しか飛んでこない＝「自分は向いてないかも」<br>そのまま消えてしまうパターン</div>
+    </div>
+    <span class="page-num">16 / 20</span>
+  </div>
+
+  <!-- 12. A：良かった点を1つ入れる -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>修正依頼に"良かった点"を1つ入れる</h2>
+    </div>
+    <div class="praise-body">
+      <div class="praise-left">
+        <div class="praise-label">✉️ こんな一言を添えるだけで全然違う</div>
+        <div class="praise-item">✅ テロップのテンポ感は良くなっていました</div>
+        <div class="praise-item">✅ 前回お願いした正式名称の統一、かなり改善されていました</div>
+        <div class="praise-item">✅ 全体の流れは見やすくなっていました</div>
+      </div>
+      <div class="praise-right">
+        <div class="formula-card">
+          <div class="fc-label">修正依頼の構成</div>
+          <div class="fc-text">👍 良かった点</div>
+        </div>
+        <div class="formula-plus">＋</div>
+        <div class="formula-card" style="background: linear-gradient(135deg,#1A1A2E,#333);">
+          <div class="fc-label">修正依頼の構成</div>
+          <div class="fc-text">✏️ 修正箇所</div>
+        </div>
+      </div>
+    </div>
+    <span class="page-num">17 / 20</span>
+  </div>
+
+  <!-- 13. Q：それって甘やかし？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">でも…それって<br>甘やかしじゃない？</div>
+      <div class="q-sub">「褒めてばかりだとクオリティが上がらないのでは」</div>
+    </div>
+    <span class="page-num">18 / 20</span>
+  </div>
+
+  <!-- 14. A：これは甘やかしじゃない -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">A. 甘やかしじゃない</div>
+      <div class="key-box">
+        <div class="key-text">何が合っていたかを<br>固定する作業</div>
+      </div>
+      <div class="key-sub">「正解を伝える」ことで人は迷わなくなる<br>人は<strong style="color:#FF6B2B">「正解」が分かると残りやすい</strong></div>
+    </div>
+    <span class="page-num">19 / 20</span>
+  </div>
+
+  <!-- 15. まとめ -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>まとめ：テスト期間から始めてみませんか？</h2>
+    </div>
+    <div class="summary-body">
+      <div class="summary-points">
+        <div class="summary-item">
+          <span class="si-icon">📦</span>
+          <span class="si-text">テスト素材を<strong>公開済み・短尺動画</strong>に変更（プレッシャー軽減）</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">📶</span>
+          <span class="si-text">依頼を<strong>段階的に</strong>にして、少しずつ基準を上げていく</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">💬</span>
+          <span class="si-text">修正依頼に<strong>良かった点を1つ</strong>添える（甘やかしじゃなく正解の固定）</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">🤖</span>
+          <span class="si-text">マニュアルベースの添削は<strong>AIに任せられる</strong>可能性あり</span>
+        </div>
+      </div>
+      <div class="summary-cta">
+        <div class="cta-icon">🎯</div>
+        <div class="cta-text">テスト期間だけでも<br>まず<br>導入検討を！</div>
+      </div>
+    </div>
+    <span class="page-num">20 / 20</span>
+  </div>
+
+</div><!-- /#deck -->
+
+<div id="nav">
+  <a id="back-btn" href="../index.html" title="一覧へ戻る">← 一覧</a>
+  <div class="nav-divider"></div>
+  <button id="prev-btn" onclick="prev()" disabled>◀</button>
+  <span id="counter">1 / 20</span>
+  <button id="next-btn" onclick="next()">▶</button>
+  <button id="fullscreen-btn" onclick="toggleFullscreen()" title="フルスクリーン">⛶</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function show(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, index));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('prev-btn').disabled = current === 0;
+    document.getElementById('next-btn').disabled = current === total - 1;
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') { e.preventDefault(); prev(); }
+    if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  });
+
+  document.getElementById('deck').addEventListener('click', (e) => {
+    if (e.target.closest('#nav')) return;
+    if (e.clientX > window.innerWidth / 2) next(); else prev();
+  });
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  }
+
+  function scale() {
+    const s = Math.min(window.innerWidth / 960, window.innerHeight / 540) * 0.95;
+    document.getElementById('deck').style.transform = `scale(${s})`;
+  }
+  window.addEventListener('resize', scale);
+  scale();
+</script>
+</body>
+</html>

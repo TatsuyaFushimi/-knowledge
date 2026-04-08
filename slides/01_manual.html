@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マニュアルを"読む用"から"使う用"へ</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh;
+    font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    overflow: hidden;
+  }
+
+  #deck {
+    position: relative;
+    width: 960px; height: 540px;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    width: 960px; height: 540px;
+    background: #FFF3EC; border-radius: 12px; overflow: hidden;
+    display: none; flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+  }
+  .slide.active { display: flex; }
+
+  /* ── 共通ヘッダー ── */
+  .slide-header {
+    display: flex; align-items: center;
+    padding: 24px 56px 16px; border-bottom: 2px solid rgba(255,107,43,0.12);
+    gap: 14px; flex-shrink: 0;
+  }
+  .slide-header .bar {
+    width: 8px; height: 44px;
+    background: linear-gradient(180deg, #FF6B2B, #FF9A5C);
+    border-radius: 4px; flex-shrink: 0;
+  }
+  .slide-header h2 { font-size: 30px; color: #1A1A2E; font-weight: 800; }
+
+  /* ── タイトル ── */
+  .slide-title .hero {
+    background: linear-gradient(135deg, #FF6B2B 0%, #FF9A5C 60%, #FFB87A 100%);
+    flex: 1; display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center;
+    padding: 52px 64px 44px; position: relative; overflow: hidden;
+  }
+  .slide-title .hero::after {
+    content: ''; position: absolute; right: -60px; top: -60px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); pointer-events: none;
+  }
+  .slide-title .hero::before {
+    content: ''; position: absolute; right: 80px; bottom: -80px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); pointer-events: none;
+  }
+  .slide-title .tag {
+    font-size: 17px; color: rgba(255,255,255,0.9); font-weight: 500;
+    letter-spacing: 0.1em; margin-bottom: 14px;
+    background: rgba(255,255,255,0.2); padding: 4px 16px;
+    border-radius: 20px; display: inline-block; position: relative; z-index: 1;
+  }
+  .slide-title h1 {
+    font-size: 48px; color: #fff; font-weight: 900; line-height: 1.3;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.12); position: relative; z-index: 1;
+  }
+  .slide-title .subtitle {
+    font-size: 21px; color: rgba(255,255,255,0.88); margin-top: 12px;
+    font-weight: 400; position: relative; z-index: 1;
+  }
+  .slide-title .footer {
+    height: 68px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 64px; background: #fff;
+  }
+  .slide-title .footer .name { color: #FF6B2B; font-weight: 700; font-size: 18px; }
+  .slide-title .footer .date { color: #aaa; font-size: 17px; }
+
+  /* ── コンテンツ body ── */
+  .slide-content .body {
+    flex: 1; display: flex; align-items: center;
+    padding: 18px 52px; gap: 32px;
+  }
+
+  /* ── ポイントリスト ── */
+  .points { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .point-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: #fff; border-radius: 12px; padding: 15px 20px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08); border-left: 5px solid #FF6B2B;
+  }
+  .point-item .icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+  .point-item .text { font-size: 23px; color: #1A1A2E; font-weight: 600; line-height: 1.5; }
+  .point-item .sub  { font-size: 16px; color: #888; font-weight: 400; margin-top: 4px; }
+
+  .illust {
+    width: 160px; height: 160px;
+    background: linear-gradient(135deg, #FFE0CC, #FFB87A);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px; flex-shrink: 0;
+  }
+
+  /* ── Qスライド ── */
+  .slide-question { background: #1A1A2E; align-items: center; justify-content: center; }
+  .q-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; padding: 48px 64px; text-align: center;
+  }
+  .q-badge {
+    font-size: 14px; font-weight: 800; letter-spacing: 0.2em; color: #FF6B2B;
+    background: rgba(255,107,43,0.15); padding: 6px 20px; border-radius: 20px;
+    border: 1px solid rgba(255,107,43,0.3);
+  }
+  .q-text { font-size: 42px; font-weight: 900; color: #fff; line-height: 1.5; }
+  .q-sub  { font-size: 20px; color: rgba(255,255,255,0.5); font-weight: 400; line-height: 1.7; }
+
+  /* ── キーメッセージ ── */
+  .slide-key { background: #fff; align-items: center; justify-content: center; }
+  .key-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 18px; padding: 44px 64px; text-align: center; width: 100%;
+  }
+  .key-label { font-size: 17px; color: #FF6B2B; font-weight: 700; letter-spacing: 0.15em; }
+  .key-box {
+    border: 4px solid #FF6B2B; border-radius: 16px;
+    padding: 26px 52px; background: #FFF3EC; position: relative;
+  }
+  .key-box::before {
+    content: '"'; position: absolute; top: -22px; left: 22px;
+    font-size: 80px; color: #FF6B2B; line-height: 1; font-family: Georgia, serif;
+  }
+  .key-text { font-size: 40px; color: #1A1A2E; font-weight: 900; line-height: 1.5; }
+  .key-sub  { font-size: 20px; color: #888; font-weight: 400; line-height: 1.7; }
+
+  /* ── 2カラム比較 ── */
+  .slide-2col .body {
+    flex: 1; display: flex; padding: 18px 44px; gap: 20px; align-items: stretch;
+  }
+  .col-card {
+    flex: 1; background: #fff; border-radius: 12px; padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 10px;
+    box-shadow: 0 2px 12px rgba(255,107,43,0.08);
+  }
+  .col-card .col-title {
+    font-size: 21px; font-weight: 800; color: #FF6B2B;
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 10px; border-bottom: 2px solid #FFE0CC;
+  }
+  .col-card .col-item {
+    font-size: 20px; color: #1A1A2E; font-weight: 500;
+    display: flex; align-items: flex-start; gap: 8px; line-height: 1.55;
+  }
+  .col-card .col-item::before { content: '▸'; color: #FF9A5C; flex-shrink: 0; margin-top: 2px; }
+  .col-card.col-right { border-top: 4px solid #FF6B2B; }
+
+  /* ── 修正依頼例 ── */
+  .example-body {
+    flex: 1; display: flex; align-items: stretch; padding: 16px 48px; gap: 28px;
+  }
+  .example-left {
+    flex: 1; display: flex; flex-direction: column; gap: 12px; justify-content: center;
+  }
+  .example-left .el-desc {
+    font-size: 21px; color: #1A1A2E; font-weight: 600; line-height: 1.6;
+    background: #fff; border-radius: 12px; padding: 14px 18px;
+    border-left: 5px solid #FF6B2B; box-shadow: 0 2px 8px rgba(255,107,43,0.07);
+  }
+  .example-code {
+    flex: 1; background: #1A1A2E; border-radius: 14px; padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 4px; min-width: 280px;
+  }
+  .example-code .ec-label {
+    font-size: 12px; font-weight: 700; color: #FF9A5C;
+    letter-spacing: 0.12em; margin-bottom: 8px; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .example-code .ec-line { font-size: 15px; color: rgba(255,255,255,0.85); line-height: 1.9; font-family: monospace; }
+  .example-code .ec-note { font-size: 14px; color: #FF9A5C; margin-top: 6px; line-height: 1.7; }
+
+  /* ── まとめ ── */
+  .summary-body {
+    flex: 1; display: flex; align-items: center; padding: 16px 48px; gap: 20px;
+  }
+  .summary-points { flex: 1; display: flex; flex-direction: column; gap: 13px; }
+  .summary-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #fff; border-radius: 12px; padding: 13px 18px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08); border-left: 5px solid #FF6B2B;
+  }
+  .summary-item .si-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .summary-item .si-text { font-size: 21px; color: #1A1A2E; font-weight: 600; line-height: 1.5; }
+  .summary-cta {
+    background: linear-gradient(135deg, #FF6B2B, #FF9A5C);
+    border-radius: 14px; padding: 24px 20px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; width: 200px; flex-shrink: 0; text-align: center;
+    box-shadow: 0 4px 16px rgba(255,107,43,0.3);
+  }
+  .summary-cta .cta-icon { font-size: 40px; }
+  .summary-cta .cta-text { font-size: 18px; font-weight: 800; color: #fff; line-height: 1.6; }
+
+  /* ── ページ番号 ── */
+  .page-num {
+    position: absolute; bottom: 10px; right: 16px;
+    font-size: 13px; color: #ccc; z-index: 10; pointer-events: none;
+  }
+  .slide-question .page-num { color: rgba(255,255,255,0.25); }
+
+  /* ── ナビゲーション ── */
+  #nav {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(30,30,30,0.85); padding: 10px 22px;
+    border-radius: 32px; backdrop-filter: blur(8px);
+    z-index: 100; user-select: none;
+  }
+  #nav button {
+    background: none; border: none; color: #fff; font-size: 20px;
+    cursor: pointer; padding: 4px 10px; border-radius: 8px;
+    transition: background 0.15s; line-height: 1;
+  }
+  #nav button:hover { background: rgba(255,107,43,0.4); }
+  #nav button:disabled { color: #555; cursor: default; }
+  #nav button:disabled:hover { background: none; }
+  #counter { font-size: 14px; color: #aaa; min-width: 58px; text-align: center; font-family: monospace; }
+  #fullscreen-btn {
+    background: none; border: none; color: #aaa; font-size: 16px;
+    cursor: pointer; padding: 4px 8px; border-radius: 8px; line-height: 1;
+    transition: color 0.15s;
+  }
+  #fullscreen-btn:hover { color: #FF9A5C; }
+  #back-btn {
+    background: none; border: none; color: rgba(255,255,255,0.5); font-size: 13px;
+    cursor: pointer; padding: 4px 10px; border-radius: 8px; line-height: 1;
+    text-decoration: none; display: flex; align-items: center; gap: 4px;
+    transition: color 0.15s;
+  }
+  #back-btn:hover { color: #FF9A5C; }
+  .nav-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+  :fullscreen #nav { opacity: 0.3; transition: opacity 0.2s; }
+  :fullscreen #nav:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 1. タイトル -->
+  <div class="slide slide-title active">
+    <div class="hero">
+      <div class="tag">Knowledge Share</div>
+      <h1>マニュアルを<br>"読む用"から"使う用"へ</h1>
+      <div class="subtitle">人間の特性を活かしたマニュアル設計の考え方</div>
+    </div>
+    <div class="footer">
+      <span class="name">発表者名</span>
+      <span class="date">2026.03.12</span>
+    </div>
+    <span class="page-num">1 / 13</span>
+  </div>
+
+  <!-- 2. Q：今のマニュアル、使われてる？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">今のマニュアル、<br>編集作業中に見られてる？</div>
+      <div class="q-sub">指示があった時・不安を感じた時・変更時・真面目な人だけ…<br>日常の編集作業の中でなかなか参照されていないのでは</div>
+    </div>
+    <span class="page-num">2 / 13</span>
+  </div>
+
+  <!-- 3. A：人間の特性から考えた -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>人間の特性から考えてみた</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">📖</span>
+          <div>
+            <div class="text">参考にしたのは「ウェブ・ユーザビリティ」という本</div>
+            <div class="sub">デザインや流行ではなく、人間の特性からアプローチする内容</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🧠</span>
+          <div>
+            <div class="text">キーワードは「再生より再認」</div>
+            <div class="sub">人は"思い出す"より"見ればわかる"方がミスが少ない</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">💡</span>
+          <div>
+            <div class="text">マニュアルも同じ発想で設計できるのでは？</div>
+            <div class="sub">覚えていなくても、見れば確認できる資料にする</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">🧩</div>
+    </div>
+    <span class="page-num">3 / 13</span>
+  </div>
+
+  <!-- 4. キーメッセージ：再生より再認 -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">Key Concept</div>
+      <div class="key-box">
+        <div class="key-text">再生より再認<br><span style="font-size:26px;font-weight:500;color:#888">Recognition rather than recall</span></div>
+      </div>
+      <div class="key-sub">「思い出す」より「見ればわかる」方が、人はミスをしない</div>
+    </div>
+    <span class="page-num">4 / 13</span>
+  </div>
+
+  <!-- 5. Q：地図 vs ナビ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">地図とナビ、<br>どっちが迷いにくい？</div>
+      <div class="q-sub">地図は出発前に見て"思い出しながら"進む<br>ナビはリアルタイムで"見ながら"進む</div>
+    </div>
+    <span class="page-num">5 / 13</span>
+  </div>
+
+  <!-- 6. A：マニュアルをナビにする -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>マニュアルをナビにしたい</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">🗺️</span>
+          <div>
+            <div class="text">地図（読む用）＝覚えてから作業する</div>
+            <div class="sub">マニュアルを事前に読んで、記憶を頼りに編集する</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🧭</span>
+          <div>
+            <div class="text">ナビ（使う用）＝見ながら作業する</div>
+            <div class="sub">作業中に確認できる資料があれば、覚えていなくてもミスを防げる</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🎯</span>
+          <div>
+            <div class="text">ゴールはマニュアルを「使う用」に変えること</div>
+            <div class="sub">迷子にならず事故らず、ゴールしてきてもらう</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">🧭</div>
+    </div>
+    <span class="page-num">6 / 13</span>
+  </div>
+
+  <!-- 7.「読む用」vs「使う用」比較表 -->
+  <div class="slide slide-content slide-2col">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>「読む用」と「使う用」の違い</h2>
+    </div>
+    <div class="body">
+      <div class="col-card">
+        <div class="col-title">📚 読む用（現状）</div>
+        <div class="col-item">理解させる</div>
+        <div class="col-item">学習用・説明</div>
+        <div class="col-item">抽象的な記述が多め</div>
+        <div class="col-item">一度読んで終わり</div>
+      </div>
+      <div class="col-card col-right">
+        <div class="col-title">🧭 使う用（目指す姿）</div>
+        <div class="col-item">判断させる</div>
+        <div class="col-item">作業用・チェック</div>
+        <div class="col-item">具体的な内容に特化</div>
+        <div class="col-item">作業中に何度も参照できる</div>
+      </div>
+    </div>
+    <span class="page-num">7 / 13</span>
+  </div>
+
+  <!-- 8. Q：具体的にどう変える？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">具体的に何を<br>どう変えればいい？</div>
+      <div class="q-sub">読まれるタイミングを待つのではなく、タイミングをこちらから作る</div>
+    </div>
+    <span class="page-num">8 / 13</span>
+  </div>
+
+  <!-- 9. A：提出前チェックリスト -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>一例：提出前チェックリスト</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">✅</span>
+          <div>
+            <div class="text">提出前に自己確認させる仕組みを作る</div>
+            <div class="sub">誤字脱字 / 助詞改行 / 正式名称 / 音量 / テロップサイズ など</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">⚡</span>
+          <div>
+            <div class="text">一瞬で確認できる「カンペ」として機能する</div>
+            <div class="sub">マニュアルを覚えていなくてもミスを防げる状態に</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🔗</span>
+          <div>
+            <div class="text">マニュアルの参照先ページも添えておく</div>
+            <div class="sub">例：誤字脱字…P1〜2 ／ 詳細はマニュアル参照</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">📋</div>
+    </div>
+    <span class="page-num">9 / 13</span>
+  </div>
+
+  <!-- 10. Q：修正依頼も変えられる？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">修正依頼、<br>"何がダメか"伝わってる？</div>
+      <div class="q-sub">ただ直してもらうだけでは、また同じミスが繰り返される</div>
+    </div>
+    <span class="page-num">10 / 13</span>
+  </div>
+
+  <!-- 11. A：マニュアル言葉で教える -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>修正依頼に「マニュアル言葉」を使う</h2>
+    </div>
+    <div class="example-body">
+      <div class="example-left">
+        <div class="el-desc">修正箇所に「共通語（番号）」を振る<br>→ 何がダメでどうして欲しいかを<br>　 マニュアルと紐づけて伝える</div>
+        <div class="el-desc">修正依頼そのものが<br>擬似的なマニュアル参照になる</div>
+      </div>
+      <div class="example-code">
+        <div class="ec-label">修正依頼の例</div>
+        <div class="ec-line">00:00　Youtube→YouTube　①</div>
+        <div class="ec-line">00:00　②</div>
+        <div class="ec-line">00:00　⑥</div>
+        <div class="ec-note">①正式名称　例：Buyma NG / BUYMA OK<br>②強調テロップ＋SE（〇〇素材使用）<br>⑥SEもお願いします</div>
+      </div>
+    </div>
+    <span class="page-num">11 / 13</span>
+  </div>
+
+  <!-- 12. Q：それって手間じゃない？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">番号を振るって<br>結局手間じゃない？</div>
+      <div class="q-sub">ルールを増やすのは編集者さんからしたら最悪…</div>
+    </div>
+    <span class="page-num">12 / 13</span>
+  </div>
+
+  <!-- 13. まとめ -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>まとめ：読まれないなら"見られる"設計へ</h2>
+    </div>
+    <div class="summary-body">
+      <div class="summary-points">
+        <div class="summary-item">
+          <span class="si-icon">🧠</span>
+          <span class="si-text">人は<strong>「思い出す」より「見ればわかる」</strong>方がミスが少ない</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">🧭</span>
+          <span class="si-text">マニュアルを<strong>「読む用」から「使う用」</strong>に変えていく</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">✅</span>
+          <span class="si-text"><strong>提出前チェックリスト</strong>で作業中に参照できるカンペを作る</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">💬</span>
+          <span class="si-text">修正依頼に<strong>マニュアル言葉（共通語）</strong>を使い、理由も一緒に伝える</span>
+        </div>
+      </div>
+      <div class="summary-cta">
+        <div class="cta-icon">📖→🧭</div>
+        <div class="cta-text">読む用から<br>使う用へ！</div>
+      </div>
+    </div>
+    <span class="page-num">13 / 13</span>
+  </div>
+
+</div><!-- /#deck -->
+
+<div id="nav">
+  <a id="back-btn" href="../index.html" title="一覧へ戻る">← 一覧</a>
+  <div class="nav-divider"></div>
+  <button id="prev-btn" onclick="prev()" disabled>◀</button>
+  <span id="counter">1 / 13</span>
+  <button id="next-btn" onclick="next()">▶</button>
+  <button id="fullscreen-btn" onclick="toggleFullscreen()" title="フルスクリーン">⛶</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function show(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, index));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('prev-btn').disabled = current === 0;
+    document.getElementById('next-btn').disabled = current === total - 1;
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') { e.preventDefault(); prev(); }
+    if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  });
+
+  document.getElementById('deck').addEventListener('click', (e) => {
+    if (e.target.closest('#nav')) return;
+    if (e.clientX > window.innerWidth / 2) next(); else prev();
+  });
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+
+  function scale() {
+    const s = Math.min(window.innerWidth / 960, window.innerHeight / 540) * 0.95;
+    document.getElementById('deck').style.transform = `scale(${s})`;
+  }
+  window.addEventListener('resize', scale);
+  scale();
+</script>
+</body>
+</html>
