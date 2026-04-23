@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEをとっつきやすく！</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh;
+    font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    overflow: hidden;
+  }
+
+  #deck {
+    position: relative;
+    width: 960px; height: 540px;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    width: 960px; height: 540px;
+    background: #FFF3EC; border-radius: 12px; overflow: hidden;
+    display: none; flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+  }
+  .slide.active { display: flex; }
+
+  /* ── 共通ヘッダー ── */
+  .slide-header {
+    display: flex; align-items: center;
+    padding: 24px 56px 16px; border-bottom: 2px solid rgba(255,107,43,0.12);
+    gap: 14px; flex-shrink: 0;
+  }
+  .slide-header .bar {
+    width: 8px; height: 44px;
+    background: linear-gradient(180deg, #FF6B2B, #FF9A5C);
+    border-radius: 4px; flex-shrink: 0;
+  }
+  .slide-header h2 { font-size: 30px; color: #1A1A2E; font-weight: 800; }
+
+  /* ── タイトル ── */
+  .slide-title .hero {
+    background: linear-gradient(135deg, #FF6B2B 0%, #FF9A5C 60%, #FFB87A 100%);
+    flex: 1; display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center;
+    padding: 52px 64px 44px; position: relative; overflow: hidden;
+  }
+  .slide-title .hero::after {
+    content: ''; position: absolute; right: -60px; top: -60px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); pointer-events: none;
+  }
+  .slide-title .hero::before {
+    content: ''; position: absolute; right: 80px; bottom: -80px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); pointer-events: none;
+  }
+  .slide-title .tag {
+    font-size: 17px; color: rgba(255,255,255,0.9); font-weight: 500;
+    letter-spacing: 0.1em; margin-bottom: 14px;
+    background: rgba(255,255,255,0.2); padding: 4px 16px;
+    border-radius: 20px; display: inline-block; position: relative; z-index: 1;
+  }
+  .slide-title h1 {
+    font-size: 48px; color: #fff; font-weight: 900; line-height: 1.3;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.12); position: relative; z-index: 1;
+  }
+  .slide-title .subtitle {
+    font-size: 21px; color: rgba(255,255,255,0.88); margin-top: 12px;
+    font-weight: 400; position: relative; z-index: 1;
+  }
+  .slide-title .footer {
+    height: 68px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 64px; background: #fff;
+  }
+  .slide-title .footer .name { color: #FF6B2B; font-weight: 700; font-size: 18px; }
+  .slide-title .footer .date { color: #aaa; font-size: 17px; }
+
+  /* ── コンテンツ body ── */
+  .slide-content .body {
+    flex: 1; display: flex; align-items: center;
+    padding: 18px 52px; gap: 32px;
+  }
+
+  /* ── ポイントリスト ── */
+  .points { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+  .point-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: #fff; border-radius: 12px; padding: 15px 20px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08); border-left: 5px solid #FF6B2B;
+  }
+  .point-item .icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+  .point-item .text { font-size: 23px; color: #1A1A2E; font-weight: 600; line-height: 1.5; }
+  .point-item .sub  { font-size: 16px; color: #888; font-weight: 400; margin-top: 4px; }
+
+  .illust {
+    width: 160px; height: 160px;
+    background: linear-gradient(135deg, #FFE0CC, #FFB87A);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 64px; flex-shrink: 0;
+  }
+
+  /* ── Qスライド ── */
+  .slide-question { background: #1A1A2E; align-items: center; justify-content: center; }
+  .q-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; padding: 48px 64px; text-align: center;
+  }
+  .q-badge {
+    font-size: 14px; font-weight: 800; letter-spacing: 0.2em; color: #FF6B2B;
+    background: rgba(255,107,43,0.15); padding: 6px 20px; border-radius: 20px;
+    border: 1px solid rgba(255,107,43,0.3);
+  }
+  .q-text { font-size: 42px; font-weight: 900; color: #fff; line-height: 1.5; }
+  .q-sub  { font-size: 20px; color: rgba(255,255,255,0.5); font-weight: 400; line-height: 1.7; }
+
+  /* ── キーメッセージ ── */
+  .slide-key { background: #fff; align-items: center; justify-content: center; }
+  .key-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 18px; padding: 44px 64px; text-align: center; width: 100%;
+  }
+  .key-label { font-size: 17px; color: #FF6B2B; font-weight: 700; letter-spacing: 0.15em; }
+  .key-box {
+    border: 4px solid #FF6B2B; border-radius: 16px;
+    padding: 26px 52px; background: #FFF3EC; position: relative;
+  }
+  .key-box::before {
+    content: '"'; position: absolute; top: -22px; left: 22px;
+    font-size: 80px; color: #FF6B2B; line-height: 1; font-family: Georgia, serif;
+  }
+  .key-text { font-size: 40px; color: #1A1A2E; font-weight: 900; line-height: 1.5; }
+  .key-sub  { font-size: 20px; color: #888; font-weight: 400; line-height: 1.7; }
+
+  /* ── 2カラム比較 ── */
+  .slide-2col .body {
+    flex: 1; display: flex; padding: 18px 44px; gap: 20px; align-items: stretch;
+  }
+  .col-card {
+    flex: 1; background: #fff; border-radius: 12px; padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 10px;
+    box-shadow: 0 2px 12px rgba(255,107,43,0.08);
+  }
+  .col-card .col-title {
+    font-size: 21px; font-weight: 800; color: #FF6B2B;
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 10px; border-bottom: 2px solid #FFE0CC;
+  }
+  .col-card .col-item {
+    font-size: 20px; color: #1A1A2E; font-weight: 500;
+    display: flex; align-items: flex-start; gap: 8px; line-height: 1.55;
+  }
+  .col-card .col-item::before { content: '▸'; color: #FF9A5C; flex-shrink: 0; margin-top: 2px; }
+  .col-card.col-right { border-top: 4px solid #FF6B2B; }
+
+  /* ── 指示例スライド ── */
+  .example-body {
+    flex: 1; display: flex; align-items: stretch; padding: 16px 48px; gap: 28px;
+  }
+  .example-left {
+    flex: 1; display: flex; flex-direction: column; gap: 12px; justify-content: center;
+  }
+  .example-left .el-desc {
+    font-size: 21px; color: #1A1A2E; font-weight: 600; line-height: 1.6;
+    background: #fff; border-radius: 12px; padding: 14px 18px;
+    border-left: 5px solid #FF6B2B; box-shadow: 0 2px 8px rgba(255,107,43,0.07);
+  }
+  .example-code {
+    flex: 1; background: #1A1A2E; border-radius: 14px; padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 4px; min-width: 280px;
+  }
+  .example-code .ec-label {
+    font-size: 12px; font-weight: 700; color: #FF9A5C;
+    letter-spacing: 0.12em; margin-bottom: 8px; padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .example-code .ec-line { font-size: 15px; color: rgba(255,255,255,0.85); line-height: 1.9; }
+  .example-code .ec-note { font-size: 14px; color: #FF9A5C; margin-top: 6px; line-height: 1.7; }
+
+  /* ── まとめ ── */
+  .summary-body {
+    flex: 1; display: flex; align-items: center; padding: 16px 48px; gap: 20px;
+  }
+  .summary-points { flex: 1; display: flex; flex-direction: column; gap: 13px; }
+  .summary-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #fff; border-radius: 12px; padding: 13px 18px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08); border-left: 5px solid #FF6B2B;
+  }
+  .summary-item .si-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .summary-item .si-text { font-size: 21px; color: #1A1A2E; font-weight: 600; line-height: 1.5; }
+  .summary-cta {
+    background: linear-gradient(135deg, #FF6B2B, #FF9A5C);
+    border-radius: 14px; padding: 24px 20px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; width: 200px; flex-shrink: 0; text-align: center;
+    box-shadow: 0 4px 16px rgba(255,107,43,0.3);
+  }
+  .summary-cta .cta-icon { font-size: 40px; }
+  .summary-cta .cta-text { font-size: 18px; font-weight: 800; color: #fff; line-height: 1.6; }
+
+  /* ── Adobeアプリ一覧スライド ── */
+  .adobe-body {
+    flex: 1; display: flex; flex-direction: column; padding: 12px 48px 16px; gap: 8px;
+  }
+  .adobe-item {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border-radius: 10px; padding: 11px 18px;
+    box-shadow: 0 2px 6px rgba(255,107,43,0.07);
+  }
+  .adobe-item .a-icon { font-size: 20px; flex-shrink: 0; width: 28px; text-align: center; }
+  .adobe-item .a-app { font-size: 19px; font-weight: 800; color: #FF6B2B; width: 130px; flex-shrink: 0; }
+  .adobe-item .a-desc { font-size: 17px; color: #444; font-weight: 400; line-height: 1.45; }
+  .adobe-item.highlight { border-left: 5px solid #FF6B2B; background: #FFF3EC; }
+  .adobe-item.highlight .a-desc { color: #1A1A2E; font-weight: 600; }
+
+  /* ── 動画スライド ── */
+  .video-body {
+    flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px 48px; gap: 32px;
+  }
+  .video-player {
+    width: 420px; height: 236px; border-radius: 14px;
+    background: #000; flex-shrink: 0;
+    outline: none; display: block;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  }
+  .video-desc {
+    flex: 1; display: flex; flex-direction: column; gap: 12px; justify-content: center;
+  }
+  .video-desc .vd-item {
+    background: #fff; border-radius: 10px; padding: 12px 16px;
+    border-left: 5px solid #FF6B2B; font-size: 18px; color: #1A1A2E; font-weight: 600; line-height: 1.5;
+    box-shadow: 0 2px 6px rgba(255,107,43,0.07);
+  }
+  .video-desc .vd-item .vd-sub { font-size: 14px; color: #888; font-weight: 400; margin-top: 3px; }
+
+  /* ── 調整ポイントスライド ── */
+  .adjust-body {
+    flex: 1; display: flex; align-items: center; padding: 16px 48px; gap: 28px;
+  }
+  .adjust-points { flex: 1; display: flex; flex-direction: column; gap: 13px; }
+  .adjust-item {
+    display: flex; align-items: center; gap: 14px;
+    background: #fff; border-radius: 12px; padding: 14px 18px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08);
+  }
+  .adjust-item .ai-num {
+    width: 36px; height: 36px; background: linear-gradient(135deg, #FF6B2B, #FF9A5C);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 900; color: #fff; flex-shrink: 0;
+  }
+  .adjust-item .ai-text { font-size: 22px; color: #1A1A2E; font-weight: 600; }
+  .adjust-illust {
+    width: 180px; height: 180px;
+    background: linear-gradient(135deg, #FFE0CC, #FFB87A);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 72px; flex-shrink: 0;
+  }
+
+  /* ── 完成版スライド ── */
+  .final-body {
+    flex: 1; display: flex; align-items: center; padding: 16px 40px; gap: 28px;
+  }
+  .final-left {
+    flex: 1; display: flex; flex-direction: column; gap: 12px; justify-content: center;
+  }
+  .final-left .fl-item {
+    background: #fff; border-radius: 12px; padding: 12px 16px;
+    border-left: 5px solid #FF6B2B; font-size: 19px; color: #1A1A2E; font-weight: 600; line-height: 1.55;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.07);
+  }
+  .final-left .fl-item .fl-sub { font-size: 14px; color: #888; font-weight: 400; margin-top: 4px; }
+  .final-right {
+    display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .yt-embed {
+    width: 320px; height: 180px; border-radius: 12px; border: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.25); display: block;
+  }
+  .yt-label {
+    font-size: 13px; color: #aaa; text-align: center;
+  }
+
+  /* ── ページ番号 ── */
+  .page-num {
+    position: absolute; bottom: 10px; right: 16px;
+    font-size: 13px; color: #ccc; z-index: 10; pointer-events: none;
+  }
+  .slide-question .page-num { color: rgba(255,255,255,0.25); }
+
+  /* ── ナビゲーション ── */
+  #nav {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(30,30,30,0.85); padding: 10px 22px;
+    border-radius: 32px; backdrop-filter: blur(8px);
+    z-index: 100; user-select: none;
+  }
+  #nav button {
+    background: none; border: none; color: #fff; font-size: 20px;
+    cursor: pointer; padding: 4px 10px; border-radius: 8px;
+    transition: background 0.15s; line-height: 1;
+  }
+  #nav button:hover { background: rgba(255,107,43,0.4); }
+  #nav button:disabled { color: #555; cursor: default; }
+  #nav button:disabled:hover { background: none; }
+  #counter { font-size: 14px; color: #aaa; min-width: 58px; text-align: center; font-family: monospace; }
+  #fullscreen-btn {
+    background: none; border: none; color: #aaa; font-size: 16px;
+    cursor: pointer; padding: 4px 8px; border-radius: 8px; line-height: 1;
+    transition: color 0.15s;
+  }
+  #fullscreen-btn:hover { color: #FF9A5C; }
+  #back-btn {
+    background: none; border: none; color: rgba(255,255,255,0.5); font-size: 13px;
+    cursor: pointer; padding: 4px 10px; border-radius: 8px; line-height: 1;
+    text-decoration: none; display: flex; align-items: center; gap: 4px;
+    transition: color 0.15s;
+  }
+  #back-btn:hover { color: #FF9A5C; }
+  .nav-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+  :fullscreen #nav { opacity: 0.3; transition: opacity 0.2s; }
+  :fullscreen #nav:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 1. タイトル -->
+  <div class="slide slide-title active">
+    <div class="hero">
+      <div class="tag">Knowledge Share</div>
+      <h1>AEをとっつきやすく！</h1>
+      <div class="subtitle">プロンプト実行でAfter Effectsを動かす</div>
+    </div>
+    <div class="footer">
+      <span class="name">伏見</span>
+      <span class="date">2026.04.23</span>
+    </div>
+    <span class="page-num">1 / 12</span>
+  </div>
+
+  <!-- 2. きっかけ -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>きっかけ：萬田さんchフォーマット作成</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">🎬</span>
+          <div>
+            <div class="text">萬田さんchのフォーマット作成で<br>AEが必要になった</div>
+            <div class="sub">やりたい表現がAEじゃないと実現できないと判明</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🔍</span>
+          <div>
+            <div class="text">AEを一から調査することに</div>
+            <div class="sub">使ったことがない状態からスタート</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">🎬</div>
+    </div>
+    <span class="page-num">2 / 12</span>
+  </div>
+
+  <!-- 3. Q：AEって難しいの？ -->
+  <div class="slide slide-question">
+    <div class="q-inner">
+      <div class="q-badge">QUESTION</div>
+      <div class="q-text">AEって<br>難しいの？</div>
+      <div class="q-sub">ネットで調べると…</div>
+    </div>
+    <span class="page-num">3 / 12</span>
+  </div>
+
+  <!-- 4. AEの難易度 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>ネットに書いてある難易度</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">⏱️</span>
+          <div>
+            <div class="text">使いこなすのには100時間〜</div>
+            <div class="sub">習得コストがとにかく高い</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">😵</span>
+          <div>
+            <div class="text">やれる事が多くて迷子になる</div>
+            <div class="sub">自分のやりたい事を実現するのが難しい</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🔎</span>
+          <div>
+            <div class="text">「どのアニメーションを使えばいい？」を<br>調べる時間が大半に</div>
+            <div class="sub">頭で思い描く動きを実現するまでが長い</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">😅</div>
+    </div>
+    <span class="page-num">4 / 12</span>
+  </div>
+
+  <!-- 5. 発見 -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">DISCOVERY</div>
+      <div class="key-box">
+        <div class="key-text">AEはプロンプト実行が可能！<br><span style="font-size:26px;font-weight:500;color:#888">コードから動きを作れる</span></div>
+      </div>
+      <div style="font-size:15px;font-weight:700;letter-spacing:0.12em;color:#fff;background:#FF6B2B;padding:5px 18px;border-radius:20px;display:inline-block;">ExtendScript（.jsx）</div>
+      <div class="key-sub">→ それって ClaudeCode の出番では？</div>
+    </div>
+    <span class="page-num">5 / 12</span>
+  </div>
+
+  <!-- 6. やってみた：指示内容 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>萬田さんchの自己紹介カードを作ってみた</h2>
+    </div>
+    <div class="example-body">
+      <div class="example-left">
+        <div class="el-desc">画像を用意して<br>言葉でClaudeCodeに伝えるだけ</div>
+        <div class="el-desc" style="font-size:18px;">作成したファイルをAEで実行<br>→ 動きが再現される</div>
+      </div>
+      <div class="example-code">
+        <div class="ec-label">ClaudeCodeへの指示</div>
+        <div class="ec-line">コイン画像が左から</div>
+        <div class="ec-line">コロコロ転がって出てきて</div>
+        <div class="ec-line">倒れると同時に</div>
+        <div class="ec-line">自己紹介カードが飛び出してくる</div>
+        <div class="ec-note">※自己紹介カードにはあらかじめ<br>入力文字が印刷されている様な形</div>
+      </div>
+    </div>
+    <span class="page-num">6 / 12</span>
+  </div>
+
+  <!-- 7. 実行動画 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>実行してみた結果</h2>
+    </div>
+    <div class="video-body">
+      <video class="video-player" src="../実行動画.mp4" controls preload="metadata"></video>
+      <div class="video-desc">
+        <div class="vd-item">
+          コインが左からコロコロ転がってくる
+          <div class="vd-sub">回転アニメーション + 移動</div>
+        </div>
+        <div class="vd-item">
+          コインが倒れる
+          <div class="vd-sub">傾き + バウンス</div>
+        </div>
+        <div class="vd-item">
+          自己紹介カードが飛び出す
+          <div class="vd-sub">スケール + フェードイン</div>
+        </div>
+      </div>
+    </div>
+    <span class="page-num">7 / 12</span>
+  </div>
+
+  <!-- 8. 気になる点 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>気になる点が出てきた</h2>
+    </div>
+    <div class="adjust-body">
+      <div class="adjust-points">
+        <div class="adjust-item">
+          <div class="ai-num">1</div>
+          <div class="ai-text">カードのサイズ</div>
+        </div>
+        <div class="adjust-item">
+          <div class="ai-num">2</div>
+          <div class="ai-text">位置</div>
+        </div>
+        <div class="adjust-item">
+          <div class="ai-num">3</div>
+          <div class="ai-text">スピード</div>
+        </div>
+      </div>
+      <div class="adjust-illust">🤔</div>
+    </div>
+    <span class="page-num">8 / 12</span>
+  </div>
+
+  <!-- 9. 調整の考え方 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>調整はPremierePro感覚でOK</h2>
+    </div>
+    <div class="body">
+      <div class="points">
+        <div class="point-item">
+          <span class="icon">✅</span>
+          <div>
+            <div class="text">「指定の素材で動きができている」が大事</div>
+            <div class="sub">そこまで来ればあとは細かい調整だけ</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">🎛️</span>
+          <div>
+            <div class="text">PremiereProを扱える皆さんなら<br>簡単に調整できる</div>
+            <div class="sub">サイズ・位置・速度の変更はAEも同じ感覚</div>
+          </div>
+        </div>
+        <div class="point-item">
+          <span class="icon">📚</span>
+          <div>
+            <div class="text">調べること自体がAEの勉強になる</div>
+            <div class="sub">ClaudeCodeに聞きながら学べる</div>
+          </div>
+        </div>
+      </div>
+      <div class="illust">🎛️</div>
+    </div>
+    <span class="page-num">9 / 12</span>
+  </div>
+
+  <!-- 10. 完成版 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>完成版</h2>
+    </div>
+    <div class="final-body">
+      <div class="final-left">
+        <div class="fl-item">
+          重本さんに相談しながら調整
+          <div class="fl-sub">どうすべきか壁打ちして方向性を決めた</div>
+        </div>
+        <div class="fl-item">
+          気になる点（サイズ・位置・スピード）を修正
+          <div class="fl-sub">ファイルを渡して確認 → フィードバックをもとに再調整</div>
+        </div>
+      </div>
+      <div class="final-right">
+        <iframe class="yt-embed" src="https://www.youtube.com/embed/EFifosD_N24" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+        <div class="yt-label">youtu.be/EFifosD_N24</div>
+      </div>
+    </div>
+    <span class="page-num">10 / 12</span>
+  </div>
+
+  <!-- 11. 結論 -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">CONCLUSION</div>
+      <div class="key-box">
+        <div class="key-text">AIをうまく使えば<br>編集ド素人でもAEで<br>思い通りの動きを作れる！</div>
+      </div>
+      <div class="key-sub">スクリプト実行 × ClaudeCode = AEの壁を越える</div>
+    </div>
+    <span class="page-num">11 / 12</span>
+  </div>
+
+  <!-- 12. ちなみに：Adobeアプリ一覧 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>ちなみに：スクリプト実行できる主要Adobeアプリ</h2>
+    </div>
+    <div class="adobe-body">
+      <div class="adobe-item">
+        <span class="a-icon">🖼️</span>
+        <span class="a-app">Photoshop</span>
+        <span class="a-desc">[ファイル] → [スクリプト] でjsxファイルを実行</span>
+      </div>
+      <div class="adobe-item">
+        <span class="a-icon">✏️</span>
+        <span class="a-app">Illustrator</span>
+        <span class="a-desc">データ結合や複雑なレイヤー操作を自動化</span>
+      </div>
+      <div class="adobe-item">
+        <span class="a-icon">📄</span>
+        <span class="a-app">InDesign</span>
+        <span class="a-desc">自動組版やレイアウト処理をスクリプトで実行</span>
+      </div>
+      <div class="adobe-item highlight">
+        <span class="a-icon">🎬</span>
+        <span class="a-app">After Effects</span>
+        <span class="a-desc">アニメーション自動生成・レイヤー管理 ← 今回はここ！</span>
+      </div>
+      <div class="adobe-item">
+        <span class="a-icon">🎞️</span>
+        <span class="a-app">Premiere Pro</span>
+        <span class="a-desc">編集工程の自動化に活用できる　<a href="https://fmclub.slack.com/archives/C09FSMF6EPK/p1775790479163329" target="_blank" style="font-size:13px;color:#FF6B2B;font-weight:700;text-decoration:none;border-bottom:1px solid #FF9A5C;">→ Slack詳細</a></span>
+      </div>
+      <div class="adobe-item">
+        <span class="a-icon">🎮</span>
+        <span class="a-app">Animate</span>
+        <span class="a-desc">ActionScriptでインタラクティブ機能を実装</span>
+      </div>
+    </div>
+    <span class="page-num">12 / 12</span>
+  </div>
+
+</div><!-- /#deck -->
+
+<div id="nav">
+  <a id="back-btn" href="../index.html" title="一覧へ戻る">← 一覧</a>
+  <div class="nav-divider"></div>
+  <button id="prev-btn" onclick="prev()" disabled>◀</button>
+  <span id="counter">1 / 12</span>
+  <button id="next-btn" onclick="next()">▶</button>
+  <button id="fullscreen-btn" onclick="toggleFullscreen()" title="フルスクリーン">⛶</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function show(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, index));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('prev-btn').disabled = current === 0;
+    document.getElementById('next-btn').disabled = current === total - 1;
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') { e.preventDefault(); prev(); }
+    if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  });
+
+  document.getElementById('deck').addEventListener('click', (e) => {
+    if (e.target.closest('#nav')) return;
+    if (e.target.closest('video') || e.target.closest('iframe')) return;
+    if (e.clientX > window.innerWidth / 2) next(); else prev();
+  });
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+
+  function scale() {
+    const s = Math.min(window.innerWidth / 960, window.innerHeight / 540) * 0.95;
+    document.getElementById('deck').style.transform = `scale(${s})`;
+  }
+  window.addEventListener('resize', scale);
+  scale();
+</script>
+</body>
+</html>
