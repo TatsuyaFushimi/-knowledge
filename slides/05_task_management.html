@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClaudeCodeでタスク管理</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh;
+    font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    overflow: hidden;
+  }
+
+  #deck {
+    position: relative;
+    width: 960px; height: 540px;
+  }
+
+  .slide {
+    position: absolute; inset: 0;
+    width: 960px; height: 540px;
+    background: #FFF3EC; border-radius: 12px; overflow: hidden;
+    display: none; flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+  }
+  .slide.active { display: flex; }
+
+  /* ── 共通ヘッダー ── */
+  .slide-header {
+    display: flex; align-items: center;
+    padding: 24px 56px 16px; border-bottom: 2px solid rgba(255,107,43,0.12);
+    gap: 14px; flex-shrink: 0;
+  }
+  .slide-header .bar {
+    width: 8px; height: 44px;
+    background: linear-gradient(180deg, #FF6B2B, #FF9A5C);
+    border-radius: 4px; flex-shrink: 0;
+  }
+  .slide-header h2 { font-size: 28px; color: #1A1A2E; font-weight: 800; }
+
+  /* ── タイトル ── */
+  .slide-title .hero {
+    background: linear-gradient(135deg, #FF6B2B 0%, #FF9A5C 60%, #FFB87A 100%);
+    flex: 1; display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center;
+    padding: 52px 64px 44px; position: relative; overflow: hidden;
+  }
+  .slide-title .hero::after {
+    content: ''; position: absolute; right: -60px; top: -60px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); pointer-events: none;
+  }
+  .slide-title .hero::before {
+    content: ''; position: absolute; right: 80px; bottom: -80px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); pointer-events: none;
+  }
+  .slide-title .tag {
+    font-size: 17px; color: rgba(255,255,255,0.9); font-weight: 500;
+    letter-spacing: 0.1em; margin-bottom: 14px;
+    background: rgba(255,255,255,0.2); padding: 4px 16px;
+    border-radius: 20px; display: inline-block; position: relative; z-index: 1;
+  }
+  .slide-title h1 {
+    font-size: 48px; color: #fff; font-weight: 900; line-height: 1.3;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.12); position: relative; z-index: 1;
+  }
+  .slide-title .subtitle {
+    font-size: 20px; color: rgba(255,255,255,0.88); margin-top: 12px;
+    font-weight: 400; position: relative; z-index: 1;
+  }
+  .slide-title .footer {
+    height: 68px; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 64px; background: #fff;
+  }
+  .slide-title .footer .name { color: #FF6B2B; font-weight: 700; font-size: 18px; }
+  .slide-title .footer .date { color: #aaa; font-size: 17px; }
+
+  /* ── コンテンツ body ── */
+  .slide-content .body {
+    flex: 1; display: flex; align-items: center;
+    padding: 18px 52px; gap: 32px;
+  }
+
+  /* ── ポイントリスト ── */
+  .points { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+  .point-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: #fff; border-radius: 12px; padding: 14px 18px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08); border-left: 5px solid #FF6B2B;
+  }
+  .point-item .icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .point-item .text { font-size: 21px; color: #1A1A2E; font-weight: 600; line-height: 1.5; }
+  .point-item .sub  { font-size: 15px; color: #888; font-weight: 400; margin-top: 4px; }
+
+  .illust {
+    width: 148px; height: 148px;
+    background: linear-gradient(135deg, #FFE0CC, #FFB87A);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 60px; flex-shrink: 0;
+  }
+
+  /* ── Qスライド ── */
+  .slide-question { background: #1A1A2E; align-items: center; justify-content: center; }
+  .q-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px; padding: 48px 64px; text-align: center;
+  }
+  .q-badge {
+    font-size: 14px; font-weight: 800; letter-spacing: 0.2em; color: #FF6B2B;
+    background: rgba(255,107,43,0.15); padding: 6px 20px; border-radius: 20px;
+    border: 1px solid rgba(255,107,43,0.3);
+  }
+  .q-text { font-size: 42px; font-weight: 900; color: #fff; line-height: 1.5; }
+  .q-sub  { font-size: 20px; color: rgba(255,255,255,0.5); font-weight: 400; line-height: 1.7; }
+
+  /* ── キーメッセージ ── */
+  .slide-key { background: #fff; align-items: center; justify-content: center; }
+  .key-inner {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 18px; padding: 44px 64px; text-align: center; width: 100%;
+  }
+  .key-label { font-size: 17px; color: #FF6B2B; font-weight: 700; letter-spacing: 0.15em; }
+  .key-box {
+    border: 4px solid #FF6B2B; border-radius: 16px;
+    padding: 26px 52px; background: #FFF3EC; position: relative;
+  }
+  .key-box::before {
+    content: '"'; position: absolute; top: -22px; left: 22px;
+    font-size: 80px; color: #FF6B2B; line-height: 1; font-family: Georgia, serif;
+  }
+  .key-text { font-size: 40px; color: #1A1A2E; font-weight: 900; line-height: 1.5; }
+  .key-sub  { font-size: 20px; color: #888; font-weight: 400; line-height: 1.7; }
+
+  /* ── 参考サイトスライド ── */
+  .ref-body {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    padding: 16px 52px; gap: 20px;
+  }
+  .ref-card {
+    background: #fff; border-radius: 14px; padding: 18px 24px;
+    box-shadow: 0 2px 12px rgba(255,107,43,0.09);
+    border-left: 5px solid #FF6B2B;
+    text-decoration: none; display: block;
+    transition: box-shadow 0.15s, transform 0.15s;
+  }
+  .ref-card:hover { box-shadow: 0 6px 24px rgba(255,107,43,0.2); transform: translateY(-2px); }
+  .ref-card .rc-title {
+    font-size: 20px; font-weight: 800; color: #1A1A2E; line-height: 1.5; margin-bottom: 6px;
+  }
+  .ref-card .rc-url {
+    font-size: 13px; color: #FF9A5C; font-weight: 500;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ref-card .rc-url::before { content: '🔗'; }
+
+  /* ── 気づきスライド（3枚目） ── */
+  .insight-body {
+    flex: 1; display: flex; align-items: center; padding: 16px 52px; gap: 28px;
+  }
+  .insight-left { flex: 1; display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+  .insight-before {
+    background: #fff; border-radius: 12px; padding: 14px 18px;
+    border-left: 5px solid #ccc;
+    font-size: 18px; color: #888; font-weight: 500; line-height: 1.6;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .insight-before .ib-label { font-size: 12px; font-weight: 700; color: #bbb; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .insight-arrow {
+    text-align: center; font-size: 26px; color: #FF9A5C; font-weight: 900; line-height: 1;
+  }
+  .insight-after {
+    background: #FFF3EC; border-radius: 12px; padding: 14px 18px;
+    border-left: 5px solid #FF6B2B;
+    font-size: 18px; color: #1A1A2E; font-weight: 600; line-height: 1.7;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.1);
+  }
+  .insight-after .ia-label { font-size: 12px; font-weight: 700; color: #FF6B2B; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .insight-after .ia-highlight { color: #FF6B2B; font-weight: 800; }
+  .insight-result {
+    background: #1A1A2E; border-radius: 12px; padding: 12px 18px;
+    font-size: 18px; color: #fff; font-weight: 700; line-height: 1.5; text-align: center;
+  }
+
+  /* ── 現状スライド（4枚目） ── */
+  .current-body {
+    flex: 1; display: flex; align-items: center; padding: 16px 52px; gap: 28px;
+  }
+  .current-flow {
+    flex: 1; display: flex; flex-direction: column; gap: 10px; justify-content: center;
+  }
+  .flow-step {
+    background: #fff; border-radius: 10px; padding: 12px 18px;
+    font-size: 19px; color: #1A1A2E; font-weight: 600; line-height: 1.5;
+    box-shadow: 0 2px 6px rgba(255,107,43,0.07);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .flow-step .fs-num {
+    width: 30px; height: 30px; background: linear-gradient(135deg, #FF6B2B, #FF9A5C);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 900; color: #fff; flex-shrink: 0;
+  }
+  .flow-arrow { text-align: center; font-size: 20px; color: #FF9A5C; }
+  .flow-note {
+    background: #FFF3EC; border-radius: 10px; padding: 10px 16px;
+    font-size: 16px; color: #FF6B2B; font-weight: 700; text-align: center;
+    border: 2px dashed #FF9A5C;
+  }
+
+  /* ── 困ったことスライド（5枚目） ── */
+  .trouble-body {
+    flex: 1; display: flex; flex-direction: column; padding: 12px 48px 16px; gap: 8px;
+  }
+  .trouble-item {
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; border-radius: 10px; padding: 11px 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    font-size: 18px; color: #1A1A2E; font-weight: 600;
+  }
+  .trouble-item .ti-icon { font-size: 20px; flex-shrink: 0; }
+
+  /* ── 遷移スライド（6枚目） ── */
+  .slide-trans { background: #1A1A2E; align-items: center; justify-content: center; }
+  .trans-inner {
+    display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; padding: 48px;
+  }
+  .trans-badge {
+    font-size: 14px; font-weight: 800; letter-spacing: 0.15em; color: #FF6B2B;
+    background: rgba(255,107,43,0.15); padding: 6px 20px; border-radius: 20px;
+    border: 1px solid rgba(255,107,43,0.3);
+  }
+  .trans-text { font-size: 34px; font-weight: 900; color: #fff; line-height: 1.6; }
+  .trans-sub { font-size: 18px; color: rgba(255,255,255,0.45); font-weight: 400; line-height: 1.7; }
+
+  /* ── できることスライド（8枚目） ── */
+  .can-body {
+    flex: 1; display: flex; align-items: stretch; padding: 14px 44px; gap: 24px;
+  }
+  .can-list {
+    flex: 1; display: flex; flex-direction: column; gap: 9px; justify-content: center;
+  }
+  .can-item {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border-radius: 10px; padding: 11px 16px;
+    box-shadow: 0 2px 6px rgba(255,107,43,0.07);
+    font-size: 17px; color: #1A1A2E; font-weight: 600;
+  }
+  .can-item .ci-icon { font-size: 18px; flex-shrink: 0; }
+  .can-item .ci-etc { font-size: 14px; color: #aaa; font-weight: 500; }
+  .can-screen {
+    width: 340px; flex-shrink: 0; background: #1A1A2E; border-radius: 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .can-screen .cs-icon { font-size: 48px; }
+  .can-screen .cs-label { font-size: 14px; color: rgba(255,255,255,0.4); }
+
+  /* ── 検討スライド（9枚目） ── */
+  .idea-body {
+    flex: 1; display: flex; align-items: center; padding: 14px 48px; gap: 24px;
+  }
+  .idea-list { flex: 1; display: flex; flex-direction: column; gap: 9px; }
+  .idea-item {
+    background: #fff; border-radius: 10px; padding: 11px 16px;
+    box-shadow: 0 2px 6px rgba(255,107,43,0.07);
+    font-size: 17px; color: #1A1A2E; font-weight: 600; line-height: 1.5;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .idea-item .ii-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .idea-item .ii-sub { font-size: 13px; color: #888; font-weight: 400; margin-top: 3px; }
+  .idea-illust {
+    width: 148px; height: 148px;
+    background: linear-gradient(135deg, #FFE0CC, #FFB87A);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 60px; flex-shrink: 0;
+  }
+
+  /* ── まとめスライド ── */
+  .summary-body {
+    flex: 1; display: flex; align-items: center; padding: 16px 48px; gap: 20px;
+  }
+  .summary-points { flex: 1; display: flex; flex-direction: column; gap: 13px; }
+  .summary-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #fff; border-radius: 12px; padding: 13px 18px;
+    box-shadow: 0 2px 8px rgba(255,107,43,0.08); border-left: 5px solid #FF6B2B;
+  }
+  .summary-item .si-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .summary-item .si-text { font-size: 20px; color: #1A1A2E; font-weight: 600; line-height: 1.5; }
+  .summary-cta {
+    background: linear-gradient(135deg, #FF6B2B, #FF9A5C);
+    border-radius: 14px; padding: 24px 16px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; width: 190px; flex-shrink: 0; text-align: center;
+    box-shadow: 0 4px 16px rgba(255,107,43,0.3);
+  }
+  .summary-cta .cta-icon { font-size: 38px; }
+  .summary-cta .cta-text { font-size: 17px; font-weight: 800; color: #fff; line-height: 1.6; }
+
+  /* ── ページ番号 ── */
+  .page-num {
+    position: absolute; bottom: 10px; right: 16px;
+    font-size: 13px; color: #ccc; z-index: 10; pointer-events: none;
+  }
+  .slide-question .page-num,
+  .slide-trans .page-num { color: rgba(255,255,255,0.25); }
+
+  /* ── ナビゲーション ── */
+  #nav {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(30,30,30,0.85); padding: 10px 22px;
+    border-radius: 32px; backdrop-filter: blur(8px);
+    z-index: 100; user-select: none;
+  }
+  #nav button {
+    background: none; border: none; color: #fff; font-size: 20px;
+    cursor: pointer; padding: 4px 10px; border-radius: 8px;
+    transition: background 0.15s; line-height: 1;
+  }
+  #nav button:hover { background: rgba(255,107,43,0.4); }
+  #nav button:disabled { color: #555; cursor: default; }
+  #nav button:disabled:hover { background: none; }
+  #counter { font-size: 14px; color: #aaa; min-width: 58px; text-align: center; font-family: monospace; }
+  #fullscreen-btn {
+    background: none; border: none; color: #aaa; font-size: 16px;
+    cursor: pointer; padding: 4px 8px; border-radius: 8px; line-height: 1;
+    transition: color 0.15s;
+  }
+  #fullscreen-btn:hover { color: #FF9A5C; }
+  #back-btn {
+    background: none; border: none; color: rgba(255,255,255,0.5); font-size: 13px;
+    cursor: pointer; padding: 4px 10px; border-radius: 8px; line-height: 1;
+    text-decoration: none; display: flex; align-items: center; gap: 4px;
+    transition: color 0.15s;
+  }
+  #back-btn:hover { color: #FF9A5C; }
+  .nav-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.15); }
+  :fullscreen #nav { opacity: 0.3; transition: opacity 0.2s; }
+  :fullscreen #nav:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="deck">
+
+  <!-- 1. タイトル -->
+  <div class="slide slide-title active">
+    <div class="hero">
+      <div class="tag">Knowledge Share</div>
+      <h1>ClaudeCodeで<br>タスク管理</h1>
+      <div class="subtitle">面倒臭いは一旦 ClaudeCode に！</div>
+    </div>
+    <div class="footer">
+      <span class="name">伏見</span>
+      <span class="date">2026.05.14</span>
+    </div>
+    <span class="page-num">1 / 10</span>
+  </div>
+
+  <!-- 2. 参考サイト -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>参考にした記事</h2>
+    </div>
+    <div class="ref-body">
+      <a class="ref-card" href="https://dev.classmethod.jp/articles/claude-code-daily-workflow/" target="_blank">
+        <div class="rc-title">Claude Codeと暮らす</div>
+        <div class="rc-url">dev.classmethod.jp/articles/claude-code-daily-workflow/</div>
+      </a>
+      <a class="ref-card" href="https://dev.classmethod.jp/articles/ai-driven-gtd-zettelkasten/" target="_blank">
+        <div class="rc-title">「考える」から「判断する」へ、Claude Codeを中心に置いたタスク・ナレッジ管理</div>
+        <div class="rc-url">dev.classmethod.jp/articles/ai-driven-gtd-zettelkasten/</div>
+      </a>
+    </div>
+    <span class="page-num">2 / 10</span>
+  </div>
+
+  <!-- 3. 記事を読んで -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>記事を読んで気づいたこと</h2>
+    </div>
+    <div class="insight-body">
+      <div class="insight-left">
+        <div class="insight-before">
+          <div class="ib-label">今まで</div>
+          タスクを記録つけて確認する用<br>（自分のタスク管理表の運用）
+        </div>
+        <div class="insight-arrow">↓</div>
+        <div class="insight-after">
+          <div class="ia-label">こうすれば？</div>
+          <span class="ia-highlight">タスク収集＋期日設定 → ClaudeCode</span><br>
+          実施有無＋イレギュラー追加 → 自分
+        </div>
+        <div class="insight-result">面倒臭い作業がなくなるのでは？ 🎯</div>
+      </div>
+    </div>
+    <span class="page-num">3 / 10</span>
+  </div>
+
+  <!-- 4. 現状のタスク管理表 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>現状のタスク管理表</h2>
+    </div>
+    <div class="current-body">
+      <div class="current-flow">
+        <div class="flow-step">
+          <div class="fs-num">1</div>
+          スプレッドシートから制作データ一覧を取得
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <div class="fs-num">2</div>
+          近い期日順に並べた表に状況を記入
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-step">
+          <div class="fs-num">3</div>
+          初稿日・修正期日を書いていく
+        </div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-note">都度手動で更新していく…</div>
+      </div>
+      <div class="illust">📋</div>
+    </div>
+    <span class="page-num">4 / 10</span>
+  </div>
+
+  <!-- 5. 困ったこと -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>困ったこと</h2>
+    </div>
+    <div class="trouble-body">
+      <div class="trouble-item">
+        <span class="ti-icon">😤</span>
+        イレギュラー対応を書く場所がない
+      </div>
+      <div class="trouble-item">
+        <span class="ti-icon">📅</span>
+        期日を書き換えていく必要があり、忘れたら抜ける
+      </div>
+      <div class="trouble-item">
+        <span class="ti-icon">🗓️</span>
+        カレンダー招集を別で見に行かなければならない
+      </div>
+      <div class="trouble-item">
+        <span class="ti-icon">🐢</span>
+        制作管理シートの取得で毎回起動が重い
+      </div>
+      <div class="trouble-item">
+        <span class="ti-icon">📱</span>
+        自宅でスマホからの確認ができない
+      </div>
+      <div class="trouble-item">
+        <span class="ti-icon">📜</span>
+        実施済みタスクのログが残り続ける
+      </div>
+    </div>
+    <span class="page-num">5 / 10</span>
+  </div>
+
+  <!-- 6. 遷移 -->
+  <div class="slide slide-trans">
+    <div class="trans-inner">
+      <div class="trans-badge">SOLUTION</div>
+      <div class="trans-text">記事レベルの物は不要だけど<br>自分好みに管理させてみた</div>
+      <div class="trans-sub">ClaudeCode に任せてみたらどうなるか？</div>
+    </div>
+    <span class="page-num">6 / 10</span>
+  </div>
+
+  <!-- 7. 便利で快適！ -->
+  <div class="slide slide-key">
+    <div class="key-inner">
+      <div class="key-label">RESULT</div>
+      <div class="key-box">
+        <div class="key-text">便利で快適！ 🎉</div>
+      </div>
+      <div class="key-sub">日々のタスク管理のストレスがぐっと減った</div>
+    </div>
+    <span class="page-num">7 / 10</span>
+  </div>
+
+  <!-- 8. できること -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>できるようになったこと</h2>
+    </div>
+    <div class="can-body">
+      <div class="can-list">
+        <div class="can-item">
+          <span class="ci-icon">📊</span>
+          制作管理シートから自分のタスクを自動取得
+        </div>
+        <div class="can-item">
+          <span class="ci-icon">📆</span>
+          カレンダー情報を1週間分まとめて取得
+        </div>
+        <div class="can-item">
+          <span class="ci-icon">✏️</span>
+          添削期日・備考などの追記
+        </div>
+        <div class="can-item">
+          <span class="ci-icon">➕</span>
+          管理シート外のタスクも自由に追加
+        </div>
+        <div class="can-item">
+          <span class="ci-icon">🎯</span>
+          件数表示＋今日中タスクを自動ピックアップ
+        </div>
+        <div class="can-item">
+          <span class="ci-icon">💬</span>
+          <span class="ci-etc">などなど…</span>
+        </div>
+      </div>
+      <div class="can-screen">
+        <div class="cs-icon">🖥️</div>
+        <div class="cs-label">実際の画面</div>
+      </div>
+    </div>
+    <span class="page-num">8 / 10</span>
+  </div>
+
+  <!-- 9. 他実装検討 -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>今後やってみたいこと</h2>
+    </div>
+    <div class="idea-body">
+      <div class="idea-list">
+        <div class="idea-item">
+          <span class="ii-icon">📝</span>
+          <div>
+            GitHubメモ連動機能
+            <div class="ii-sub">自宅でアイデアをメモ → 出社時にClaudeがタスク化・整理・保存するか判断</div>
+          </div>
+        </div>
+        <div class="idea-item">
+          <span class="ii-icon">🔔</span>
+          <div>
+            通知機能
+            <div class="ii-sub">スマホ版ClaudeCodeのみ対応</div>
+          </div>
+        </div>
+        <div class="idea-item">
+          <span class="ii-icon">📄</span>
+          <div>
+            日報フォーマット自動生成
+          </div>
+        </div>
+        <div class="idea-item">
+          <span class="ii-icon">📚</span>
+          <div>
+            過去の記録から勉強案を作成
+          </div>
+        </div>
+        <div class="idea-item">
+          <span class="ii-icon">💡</span>
+          <span class="ci-etc">などなど…</span>
+        </div>
+      </div>
+      <div class="idea-illust">🚀</div>
+    </div>
+    <span class="page-num">9 / 10</span>
+  </div>
+
+  <!-- 10. まとめ -->
+  <div class="slide slide-content">
+    <div class="slide-header">
+      <div class="bar"></div>
+      <h2>まとめ</h2>
+    </div>
+    <div class="summary-body">
+      <div class="summary-points">
+        <div class="summary-item">
+          <span class="si-icon">🔄</span>
+          <span class="si-text">タスク収集・期日整理は<strong>ClaudeCodeに任せる</strong>だけ</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">🎯</span>
+          <span class="si-text">自分は「実施有無の判断」と「イレギュラー追加」に集中できる</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">🚀</span>
+          <span class="si-text">作業のお供だけでなく、<strong>１日（暮らし）のお供</strong>にできる</span>
+        </div>
+        <div class="summary-item">
+          <span class="si-icon">💡</span>
+          <span class="si-text"><strong>面倒臭いは一旦 ClaudeCode に！</strong></span>
+        </div>
+      </div>
+      <div class="summary-cta">
+        <div class="cta-icon">🤖</div>
+        <div class="cta-text">ClaudeCode<br>を暮らしの<br>お供に！</div>
+      </div>
+    </div>
+    <span class="page-num">10 / 10</span>
+  </div>
+
+</div><!-- /#deck -->
+
+<div id="nav">
+  <a id="back-btn" href="../index.html" title="一覧へ戻る">← 一覧</a>
+  <div class="nav-divider"></div>
+  <button id="prev-btn" onclick="prev()" disabled>◀</button>
+  <span id="counter">1 / 10</span>
+  <button id="next-btn" onclick="next()">▶</button>
+  <button id="fullscreen-btn" onclick="toggleFullscreen()" title="フルスクリーン">⛶</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+
+  function show(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(total - 1, index));
+    slides[current].classList.add('active');
+    document.getElementById('counter').textContent = `${current + 1} / ${total}`;
+    document.getElementById('prev-btn').disabled = current === 0;
+    document.getElementById('next-btn').disabled = current === total - 1;
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp') { e.preventDefault(); prev(); }
+    if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+  });
+
+  document.getElementById('deck').addEventListener('click', (e) => {
+    if (e.target.closest('#nav') || e.target.closest('a')) return;
+    if (e.clientX > window.innerWidth / 2) next(); else prev();
+  });
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+
+  function scale() {
+    const s = Math.min(window.innerWidth / 960, window.innerHeight / 540) * 0.95;
+    document.getElementById('deck').style.transform = `scale(${s})`;
+  }
+  window.addEventListener('resize', scale);
+  scale();
+</script>
+</body>
+</html>
